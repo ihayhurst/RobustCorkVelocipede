@@ -17,7 +17,7 @@ before_script:
 build:
   script:
     - docker build -t my-docker-image .
-    - docker run my-docker-image
+    - docker run -d -p 80:80 my-docker-image
 
   tags:
     - ECICL-CICD
