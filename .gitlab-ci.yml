@@ -16,8 +16,8 @@ before_script:
 
 build:
   script:
-    - docker-compose down
-    - docker-compose build
-    
+    - docker build -t my-docker-image .
+    - docker run my-docker-image
+
   tags:
     - ECICL-CICD
