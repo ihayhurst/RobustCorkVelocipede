@@ -53,15 +53,10 @@ async def read_LOV2_data():
     """
     data = getData(sql)
     df = pivot_data(data)
-    df = df.reset_index()
-    
-
-    df = df.reset_index(drop=True)
     stream = io.StringIO()
     df.to_csv(stream, encoding="utf-8-sig", index=False)
     response = StreamingResponse(iter([stream.getvalue()]), media_type="text/csv")
     response.headers["Content-Disposition"] = "attachment; filename=export.csv"
-
     return response
 
 @app.get("/datasources/lov2/data")
@@ -73,7 +68,6 @@ def prepare_json():
     """
     data = getData(sql)
     df = pivot_data(data)
-    df = df.reset_index()     
     json_response = (
         df.stack()
         .groupby(level=0)
@@ -91,6 +85,7 @@ def pivot_data(data):
         index=["SUBSTANCE_IDENTIFIER", "UISMILES"],
         columns=["END_POINT_NAME"],
     )
+    df = df.reset_index()
     return df
     
     
