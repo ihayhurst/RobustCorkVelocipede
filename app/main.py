@@ -10,12 +10,38 @@ app = FastAPI(title="RAAV querys for Cerella")
 
 @app.get("/", include_in_schema=False)
 async def docs_redirect():
-    return RedirectResponse(url='/docs')
+    return RedirectResponse(url="/docs")
 
 
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: str = None):
-    return {"item_id": item_id, "q": q}
+@app.get("/status", description="Test that the service can be contacted")
+def get_DB_status():
+    sql = "SELECT node_name, node_state FROM nodes ORDER BY 1;"
+    return getData(sql)
+
+
+@app.get(
+    "/datasources",
+    description="Retrieve a list of data sources supported by the service",
+    operation_id="sourcesQueryService",
+)
+def get_datasources():
+    data = {
+        "sourceId": "8e95ec0d-4de8-45e0-95ee-990d152c1864",
+        "sourceName": "LOV2",
+        "properties": {"description": "Louise Owen query2"},
+    }
+    return data
+
+
+@app.get(
+    "/datasources/{sourceId}",
+    operation_id="getSourceProperties",
+    summary="Datasource definition",
+    description="Returns a Cerella datasource description for a sourceId",
+)
+def get_datasourceData(sourceId: str):
+    pass
+    return {}
 
 
 @app.get("/api/lov2/data/csv", response_class=StreamingResponse)
@@ -40,19 +66,19 @@ async def read_LOV2_data():
         .agg(lambda x: x.reset_index(level=0, drop=True).to_dict())
         .tolist()
     )
-    
+
     df = df.reset_index(drop=True)
     stream = io.StringIO()
-    df.to_csv(stream,encoding="utf-8-sig", index=False)
-    response = StreamingResponse(
-        iter([stream.getvalue()]), media_type="text/csv")
+    df.to_csv(stream, encoding="utf-8-sig", index=False)
+    response = StreamingResponse(iter([stream.getvalue()]), media_type="text/csv")
     response.headers["Content-Disposition"] = "attachment; filename=export.csv"
-        
+
     return response
+
 
 @app.get("/api/psd")
 def project_Substance_Details():
-        sql = """
+    sql = """
         select
         distinct project_code, project_name, rd_subs_pc
         from pres_project
@@ -66,5 +92,5 @@ def project_Substance_Details():
         (select project_code from CONF_CERELLA_PROJECT where INCLUDE ='N')
         order by 1,3
         """
-        data = getData(sql)
-        return data
+    data = getData(sql)
+    return data
