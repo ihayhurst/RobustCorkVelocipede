@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.responses import StreamingResponse, RedirectResponse
 import io
 from db import getData
+import units
 import pandas as pd
 
 
@@ -42,6 +43,14 @@ def get_datasources():
 def get_datasourceData(sourceId: str):
     pass
     return {}
+
+
+def getUnitConv(self, unit_string):
+        # unit_string = f"{unit_string}-WIBBLE"
+        unit_string = units.parse_unit(unit_string)
+        unit_string = unit_string.name
+        return unit_string
+
 
 
 @app.get("/datasources/lov2/data/csv", response_class=StreamingResponse)
