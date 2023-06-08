@@ -44,7 +44,7 @@ def get_datasourceData(sourceId: str):
     return {}
 
 
-@app.get("/api/lov2/data/csv", response_class=StreamingResponse)
+@app.get("/datasources/lov2/data/csv", response_class=StreamingResponse)
 async def read_LOV2_data():
     sql = """
     SELECT SUBSTANCE_IDENTIFIER, UISMILES, END_POINT_NAME, AVG
@@ -52,20 +52,9 @@ async def read_LOV2_data():
     GROUP BY SUBSTANCE_IDENTIFIER, UISMILES, END_POINT_NAME, AVG
     """
     data = getData(sql)
-    df = pd.json_normalize(data)
-    df = pd.pivot_table(
-        df,
-        values="AVG",
-        index=["SUBSTANCE_IDENTIFIER", "UISMILES"],
-        columns=["END_POINT_NAME"],
-    )
+    df = pivot_data(data)
     df = df.reset_index()
-    json_response = (
-        df.stack()
-        .groupby(level=0)
-        .agg(lambda x: x.reset_index(level=0, drop=True).to_dict())
-        .tolist()
-    )
+    
 
     df = df.reset_index(drop=True)
     stream = io.StringIO()
@@ -75,7 +64,36 @@ async def read_LOV2_data():
 
     return response
 
+@app.get("/datasources/lov2/data")
+def prepare_json():
+    sql = """
+    SELECT SUBSTANCE_IDENTIFIER, UISMILES, END_POINT_NAME, AVG
+    FROM RPT_CERELLA_DATA
+    GROUP BY SUBSTANCE_IDENTIFIER, UISMILES, END_POINT_NAME, AVG
+    """
+    data = getData(sql)
+    df = pivot_data(data)
+    df = df.reset_index()     
+    json_response = (
+        df.stack()
+        .groupby(level=0)
+        .agg(lambda x: x.reset_index(level=0, drop=True).to_dict())
+        .tolist()
+    )
+    return json_response
 
+
+def pivot_data(data):
+    df = pd.json_normalize(data)
+    df = pd.pivot_table(
+        df,
+        values="AVG",
+        index=["SUBSTANCE_IDENTIFIER", "UISMILES"],
+        columns=["END_POINT_NAME"],
+    )
+    return df
+    
+    
 @app.get("/api/psd")
 def project_Substance_Details():
     sql = """
