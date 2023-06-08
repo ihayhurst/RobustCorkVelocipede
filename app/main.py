@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, RedirectResponse
 import io
 from db import getData
 import pandas as pd
@@ -8,9 +8,9 @@ import pandas as pd
 app = FastAPI(title="RAAV querys for Cerella")
 
 
-@app.get("/")
-def read_root():
-    return {"Hello": "World"}
+@app.get("/", include_in_schema=False)
+async def docs_redirect():
+    return RedirectResponse(url='/docs')
 
 
 @app.get("/items/{item_id}")
