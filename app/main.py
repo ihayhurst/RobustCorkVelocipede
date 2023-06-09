@@ -41,11 +41,28 @@ def get_datasources():
     description="Returns a Cerella datasource description for a sourceId",
 )
 def get_datasourceData(sourceId: str):
-    pass
-    return {}
+    sql = """
+        select
+        distinct END_POINT_NAME,
+        METHOD_GROUP,
+        UNIT,
+        MEASUREMENT,
+        UNIT_TYPE,
+        TRANSFORMATION
+        from CONF_CERELLA_ENDPOINT
+        """
+    data = getData(sql)
+    df = pd.json_normalize(data)
+    # Add NUMBER as default columnType
+    df = df.assign(COL_TYPE="NUMBER")
+    # transform units
+    df["UNIT"] = df.apply(lambda row: getUnitConv(row.UNIT), axis=1)
+    data = df.to_dict(orient="records")
+    return data
+    
 
 
-def getUnitConv(self, unit_string):
+def getUnitConv(unit_string):
         # unit_string = f"{unit_string}-WIBBLE"
         unit_string = units.parse_unit(unit_string)
         unit_string = unit_string.name
