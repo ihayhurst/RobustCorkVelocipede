@@ -1,9 +1,16 @@
 from fastapi import FastAPI
-from fastapi.responses import StreamingResponse, RedirectResponse
+from fastapi.responses import StreamingResponse, RedirectResponse, JSONResponse
 import io
 from db import getData
+from models import (
+    AvailableProperties,
+    AvailablePropertiesStruc,
+    AdditionalMetadata,
+    Details,
+)
 import units
 import pandas as pd
+from typing import List
 
 
 app = FastAPI(title="RAAV querys for Cerella")
@@ -39,6 +46,7 @@ def get_datasources():
     operation_id="getSourceProperties",
     summary="Datasource definition",
     description="Returns a Cerella datasource description for a sourceId",
+    response_model=List[AvailableProperties],
 )
 def get_datasourceData(sourceId: str):
     sql = """
@@ -46,8 +54,6 @@ def get_datasourceData(sourceId: str):
         distinct END_POINT_NAME,
         METHOD_GROUP,
         UNIT,
-        MEASUREMENT,
-        UNIT_TYPE,
         TRANSFORMATION
         from CONF_CERELLA_ENDPOINT
         """
@@ -57,17 +63,36 @@ def get_datasourceData(sourceId: str):
     df = df.assign(COL_TYPE="NUMBER")
     # transform units
     df["UNIT"] = df.apply(lambda row: getUnitConv(row.UNIT), axis=1)
+    df.rename(
+        columns={
+            "END_POINT_NAME": "columnName",
+            "METHOD_GROUP": "assayId",
+            "UNIT": "units",
+            "COL_TYPE": "columnType",
+        },
+        inplace=True,
+    )
+    df.head()
     data = df.to_dict(orient="records")
-    return data
-    
+    response = []
+    for row in data:
+        details = row.pop("assayId", None), row.pop("units", None)
+        column_data = AvailableProperties(
+            details=Details(assayId=details[0], units=details[1]),
+            fieldName=row["columnName"],
+            columnName=row["columnName"],
+            columnType=row["columnType"],
+        ).dict()
+        response.append(column_data)
+
+    return response
 
 
 def getUnitConv(unit_string):
-        # unit_string = f"{unit_string}-WIBBLE"
-        unit_string = units.parse_unit(unit_string)
-        unit_string = unit_string.name
-        return unit_string
-
+    # unit_string = f"{unit_string}-WIBBLE"
+    unit_string = units.parse_unit(unit_string)
+    unit_string = unit_string.name
+    return unit_string
 
 
 @app.get("/datasources/lov2/data/csv", response_class=StreamingResponse)
@@ -84,6 +109,7 @@ async def read_LOV2_data():
     response = StreamingResponse(iter([stream.getvalue()]), media_type="text/csv")
     response.headers["Content-Disposition"] = "attachment; filename=export.csv"
     return response
+
 
 @app.get("/datasources/lov2/data")
 def prepare_json():
@@ -113,8 +139,8 @@ def pivot_data(data):
     )
     df = df.reset_index()
     return df
-    
-    
+
+
 @app.get("/api/psd")
 def project_Substance_Details():
     sql = """
