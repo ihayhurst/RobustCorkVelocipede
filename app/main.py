@@ -1,12 +1,14 @@
 from fastapi import FastAPI
-from fastapi.responses import StreamingResponse, RedirectResponse, JSONResponse
+from fastapi.responses import StreamingResponse, RedirectResponse
 import io
 from db import getData
 from models import (
-    AvailableProperties,
-    AvailablePropertiesStruc,
-    AdditionalMetadata,
+    DataModel,
     Details,
+    AvailableProperties,
+    AdditionalMetadata,
+    Endpoint,
+    Transformation,
 )
 import units
 import pandas as pd
@@ -46,7 +48,7 @@ def get_datasources():
     operation_id="getSourceProperties",
     summary="Datasource definition",
     description="Returns a Cerella datasource description for a sourceId",
-    response_model=List[AvailableProperties],
+    response_model=DataModel,
 )
 def get_datasourceData(sourceId: str):
     sql = """
@@ -74,7 +76,22 @@ def get_datasourceData(sourceId: str):
     )
     df.head()
     data = df.to_dict(orient="records")
-    response = []
+
+    response = [
+        AvailableProperties(
+            details=Details(assayId="", units="OTHER", format="smiles"),
+            fieldName="SUBSTANCE_IDENTIFIER",
+            columnType="TEXT",
+            columnName="SUBSTANCE_IDENTIFIER",
+        ),
+        AvailableProperties(
+            details=Details(assayId="", units="OTHER", format="smiles"),
+            fieldName="UISMILES",
+            columnType="STRUCTURE",
+            columnName="UISMILES",
+        ),
+    ]
+
     for row in data:
         details = row.pop("assayId", None), row.pop("units", None)
         column_data = AvailableProperties(
@@ -85,7 +102,36 @@ def get_datasourceData(sourceId: str):
         ).dict()
         response.append(column_data)
 
-    return response
+    # append the Structure descriptor columns
+    cerella_endpoints = []
+    for row in data:
+        if row["TRANSFORMATION"] == "log":
+            cerella_endpoint = Endpoint(
+                endpointName=row["columnName"],
+                transformation=Transformation(
+                    constant=0, factor=1, functionType="LOG10"
+                ),
+            )
+            cerella_endpoints.append(cerella_endpoint)
+
+    # Create AdditionalMetadata object
+    additional_metadata = AdditionalMetadata(cerellaEndpoints=cerella_endpoints)
+
+    # Create DataModel object
+    completeResponse = DataModel(
+        database="None",
+        name="Syngenta_lov2",
+        connection="DATA_FILE@95fec5ef-d53b-4326-989a-dcca037dba33",
+        idColumn="SUBSTANCE_IDENTIFIER",
+        template="",
+        cartridgeColumn=None,
+        chemistryColumn="UISMILES",
+        sourceId="e95ec0d-4de8-45e0-95ee-990d152c1864",
+        additionalMetadata=additional_metadata,
+        availableProperties=response,
+    )
+
+    return completeResponse
 
 
 def getUnitConv(unit_string):
