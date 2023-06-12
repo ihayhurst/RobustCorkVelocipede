@@ -65,6 +65,10 @@ def get_datasourceData(sourceId: str):
         """
     data = getData(sql)
     df = pd.json_normalize(data)
+    #optionally endpoints manually if required
+    # df.drop(df[df['END_POINT_NAME'] =="SynAcidpKa (Dec 2021)"].index, inplace=True)
+    # df.drop(df[df['END_POINT_NAME'] =="SynLogP (D-Cide Dec 2021)"].index, inplace=True)
+    
     # Add NUMBER as default columnType
     df = df.assign(COL_TYPE="NUMBER")
     # transform units
@@ -138,7 +142,6 @@ def get_datasourceData(sourceId: str):
 
 
 def getUnitConv(unit_string):
-    # unit_string = f"{unit_string}-WIBBLE"
     unit_string = units.parse_unit(unit_string)
     unit_string = unit_string.name
     return unit_string
