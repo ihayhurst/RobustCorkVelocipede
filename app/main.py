@@ -23,7 +23,11 @@ async def docs_redirect():
     return RedirectResponse(url="/docs")
 
 
-@app.get("/status", description="Test that the service can be contacted")
+@app.get(
+    "/status",
+    description="Test that the service can be contacted",
+    operation_id="testQueryService"
+)
 def get_DB_status():
     sql = "SELECT node_name, node_state FROM nodes ORDER BY 1;"
     return getData(sql)
@@ -74,7 +78,6 @@ def get_datasourceData(sourceId: str):
         },
         inplace=True,
     )
-    df.head()
     data = df.to_dict(orient="records")
 
     response = [
@@ -141,8 +144,13 @@ def getUnitConv(unit_string):
     return unit_string
 
 
-@app.get("/datasources/lov2/data/csv", response_class=StreamingResponse)
-async def read_LOV2_data():
+@app.get(
+    "/datasources/{sourceId}/data/csv",
+    response_class=StreamingResponse,
+    description="Retrieve data from the database specified by the source. Return a csv file",
+    operation_id="getDataQueryServiceCSV",
+)
+async def read_data():
     sql = """
     SELECT SUBSTANCE_IDENTIFIER, UISMILES, END_POINT_NAME, AVG
     FROM RPT_CERELLA_DATA
@@ -157,7 +165,11 @@ async def read_LOV2_data():
     return response
 
 
-@app.get("/datasources/lov2/data")
+@app.get(
+    "/datasources/{sourceId}/data",
+    description="Retrieve data from the database specified by the source.",
+    operation_id="getDataQueryService"
+)
 def prepare_json():
     sql = """
     SELECT SUBSTANCE_IDENTIFIER, UISMILES, END_POINT_NAME, AVG
@@ -187,7 +199,7 @@ def pivot_data(data):
     return df
 
 
-@app.get("/api/psd")
+@app.get("/datasources/psd")
 def project_Substance_Details():
     sql = """
         select
