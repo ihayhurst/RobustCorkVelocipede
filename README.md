@@ -16,7 +16,6 @@ by Ian M. Hayhurst.
 `docker run -d -p 80:80 -v $(pwd):/app fastapi /start-reload.sh`
 
 - For 'Production' 
-
 `docker run -d --name fastapi -p 80:80 fastapi`
 
 ## Example of config.ini required to supply the Database credentials (not included here)
