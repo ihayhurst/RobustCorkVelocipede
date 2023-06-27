@@ -10,7 +10,7 @@ by Ian M. Hayhurst.
 
 ## Procedure
 - Create a config.ini file containing your database credentials and store it in the /app folder
-build and start the image
+- Build and start the image
 `docker build -t fastapi .`
 - In a development environment it's helpful to mount your app folder into the container and use the start-reload.sh  so changes are reflected immediatly without lots of rebuilding and restarting
 `docker run -d -p 80:80 -v $(pwd):/app fastapi /start-reload.sh`
